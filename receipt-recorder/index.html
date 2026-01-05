@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityUHK Outward Bound Trip Financial Report</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CityUHK Outward Bound Trip (Beijing and Hangzhou) Financial Report</h1>
+        </header>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <h2>Input Record</h2>
+                <form id="receiptForm">
+                    <div class="form-group">
+                        <label for="prepaidBy">1. Prepaid by</label>
+                        <input type="text" id="prepaidBy" placeholder="Name/Group" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="receiptId">2. Receipt ID</label>
+                        <input type="text" id="receiptId" value="M1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="receiptImages">Receipt Images</label>
+                        <input type="file" id="receiptImages" multiple accept="image/*">
+                        <div id="imagePreviewContainer" class="image-preview-container"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">3. Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">4. Category</label>
+                        <select id="category" required>
+                            <option value="Meal - Breakfast">Meal - Breakfast</option>
+                            <option value="Meal - Lunch">Meal - Lunch</option>
+                            <option value="Meal - Dinner">Meal - Dinner</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantity">5. Quantity / No. of persons</label>
+                        <input type="number" id="quantity" min="1" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expensesCNY">6. Expenses in CNY</label>
+                        <input type="number" id="expensesCNY" step="0.01" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rate">7. CNY to HKD Rate</label>
+                        <input type="number" id="rate" step="0.0001" value="1.08" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expensesHKD">8. Expenses in HKD (Auto)</label>
+                        <input type="number" id="expensesHKD" readonly>
+                    </div>
+
+                    <button type="submit" id="addBtn">Add Record</button>
+                </form>
+            </div>
+
+            <div class="right-panel">
+                <div class="table-header">
+                    <h2>Records</h2>
+                    <div>
+                        <button id="exportBtn" class="export-btn">Export to Excel</button>
+                        <button id="exportPdfBtn" class="export-btn pdf-btn">Export to PDF</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="recordsTable">
+                        <thead>
+                            <tr>
+                                <th>Prepaid By</th>
+                                <th>Receipt</th>
+                                <th>Images</th>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Qty</th>
+                                <th>CNY</th>
+                                <th>Rate</th>
+                                <th>HKD</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Records will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
