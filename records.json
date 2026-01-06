@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": 1767681183266,
+    "prepaidBy": "ywh",
+    "receiptId": "M1",
+    "images": [],
+    "date": "2026-01-06",
+    "category": "Meal - Breakfast",
+    "quantity": "1",
+    "expensesCNY": 100,
+    "rate": 1.11,
+    "expensesHKD": 111
+  }
+]
