@@ -12,6 +12,135 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('receiptImages');
     const imagePreviewContainer = document.getElementById('imagePreviewContainer');
 
+    // GitHub Config Elements
+    const ghTokenInput = document.getElementById('ghToken');
+    const ghOwnerInput = document.getElementById('ghOwner');
+    const ghRepoInput = document.getElementById('ghRepo');
+    const ghPathInput = document.getElementById('ghPath');
+    const loadGhBtn = document.getElementById('loadGhBtn');
+    const saveGhBtn = document.getElementById('saveGhBtn');
+    const ghStatus = document.getElementById('ghStatus');
+
+    // Load GitHub Config
+    const ghConfig = JSON.parse(localStorage.getItem('ghConfig')) || {
+        owner: 'Revampes',
+        repo: 'receiptrecordor',
+        path: 'records.json',
+        token: ''
+    };
+    
+    if(ghTokenInput) ghTokenInput.value = ghConfig.token;
+    if(ghOwnerInput) ghOwnerInput.value = ghConfig.owner;
+    if(ghRepoInput) ghRepoInput.value = ghConfig.repo;
+    if(ghPathInput) ghPathInput.value = ghConfig.path;
+
+    function saveGhConfig() {
+        const config = {
+            token: ghTokenInput.value,
+            owner: ghOwnerInput.value,
+            repo: ghRepoInput.value,
+            path: ghPathInput.value
+        };
+        localStorage.setItem('ghConfig', JSON.stringify(config));
+        return config;
+    }
+
+    function showStatus(msg, type) {
+        ghStatus.textContent = msg;
+        ghStatus.className = 'status-msg ' + (type === 'error' ? 'status-error' : 'status-success');
+        setTimeout(() => {
+            ghStatus.textContent = '';
+            ghStatus.className = 'status-msg';
+        }, 5000);
+    }
+
+    async function getFileSha(owner, repo, path, token) {
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        if (response.status === 404) return null;
+        if (!response.ok) throw new Error('Failed to fetch file info');
+        const data = await response.json();
+        return data.sha;
+    }
+
+    if(loadGhBtn) {
+        loadGhBtn.addEventListener('click', async () => {
+            const config = saveGhConfig();
+            if(!config.token) return showStatus('Token required', 'error');
+            
+            try {
+                if(!confirm('This will overwrite your local records. Continue?')) return;
+                
+                showStatus('Loading...', 'normal');
+                const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${config.path}`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `token ${config.token}`,
+                        'Accept': 'application/vnd.github.v3.raw'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch records');
+                
+                const data = await response.json();
+                records = data;
+                saveData();
+                renderTable();
+                updateNextReceiptId();
+                showStatus('Records loaded successfully!', 'success');
+            } catch (err) {
+                console.error(err);
+                showStatus('Error: ' + err.message, 'error');
+            }
+        });
+    }
+
+    if(saveGhBtn) {
+        saveGhBtn.addEventListener('click', async () => {
+            const config = saveGhConfig();
+            if(!config.token) return showStatus('Token required', 'error');
+
+            try {
+                showStatus('Saving...', 'normal');
+                const sha = await getFileSha(config.owner, config.repo, config.path, config.token);
+                
+                // Convert to base64 handling unicode
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(records, null, 2))));
+                
+                const body = {
+                    message: 'Update records via Web App',
+                    content: content
+                };
+                if (sha) body.sha = sha;
+
+                const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${config.path}`;
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${config.token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Failed to save');
+                }
+
+                showStatus('Records saved to GitHub!', 'success');
+            } catch (err) {
+                console.error(err);
+                showStatus('Error: ' + err.message, 'error');
+            }
+        });
+    }
+
     // Load data from local storage
     let records = JSON.parse(localStorage.getItem('receiptRecords')) || [];
     renderTable();

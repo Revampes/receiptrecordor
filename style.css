@@ -49,6 +49,39 @@ h1 {
     gap: 30px;
 }
 
+.github-config-panel {
+    background: #252526;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.github-config-panel h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.config-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.status-msg {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.status-success { color: #4caf50; }
+.status-error { color: #f44336; }
+
 .left-panel {
     flex: 0 0 350px;
     padding-right: 20px;
