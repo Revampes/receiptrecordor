@@ -106,7 +106,44 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!config.token) return showStatus('Token required', 'error');
 
             try {
-                showStatus('Saving...', 'normal');
+                showStatus('Saving images...', 'normal');
+                
+                // 1. Upload Images first
+                let hasUpdates = false;
+                for (let rIndex = 0; rIndex < records.length; rIndex++) {
+                    const record = records[rIndex];
+                    if (!record.images) continue;
+
+                    for (let i = 0; i < record.images.length; i++) {
+                        const img = record.images[i];
+                        
+                        // Check if image needs upload (is base64)
+                        if (img.data && img.data.startsWith('data:image')) {
+                            hasUpdates = true;
+                            
+                            // Generate unique filename
+                            const ext = img.name.split('.').pop() || 'png';
+                            const filename = `images/${record.receiptId}_${record.id}_${i}.${ext}`;
+                            
+                            // Upload to GitHub
+                            const content = img.data.split(',')[1];
+                            await uploadFile(config, filename, content);
+                            
+                            // Update record with public URL
+                            // Using raw.githubusercontent.com for direct access
+                            img.data = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/main/${filename}`;
+                            img.path = filename;
+                            delete img.isUnsaved; // Clear flag
+                        }
+                    }
+                }
+
+                if (hasUpdates) {
+                    saveData(); // Save the new URLs to local storage
+                    renderTable();
+                }
+
+                showStatus('Saving records...', 'normal');
                 const sha = await getFileSha(config.owner, config.repo, config.path, config.token);
                 
                 // Convert to base64 handling unicode
@@ -133,12 +170,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errData.message || 'Failed to save');
                 }
 
-                showStatus('Records saved to GitHub!', 'success');
+                showStatus('Records and images saved to GitHub!', 'success');
             } catch (err) {
                 console.error(err);
                 showStatus('Error: ' + err.message, 'error');
             }
         });
+    }
+
+    async function uploadFile(config, path, content) {
+        const sha = await getFileSha(config.owner, config.repo, path, config.token);
+        
+        const body = {
+            message: `Upload image ${path}`,
+            content: content
+        };
+        if (sha) body.sha = sha;
+
+        const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${path}`;
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${config.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to upload ${path}`);
+        }
     }
 
     // Load data from local storage
@@ -235,13 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('rate').value = newRecord.rate;
             updateNextReceiptId();
         } catch (err) {
-            if (err.name === 'QuotaExceededError') {
-                alert('Storage full! Images are too large to save locally. Please try fewer or smaller images.');
-                records.pop(); // Remove the failed record
-            } else {
-                console.error(err);
-                alert('An error occurred while saving.');
-            }
+             console.error(err);
+             alert('An error occurred while saving.');
         }
     });
 
@@ -256,7 +312,26 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function saveData() {
-        localStorage.setItem('receiptRecords', JSON.stringify(records));
+        // Create a deep copy to modify for storage
+        const recordsToSave = records.map(record => {
+            if (!record.images) return record;
+            
+            return {
+                ...record,
+                images: record.images.map(img => {
+                    // If data is base64 (large), do not save to local storage
+                    if (img.data && img.data.startsWith('data:')) {
+                        return {
+                            ...img,
+                            data: null, // clear the heavy data
+                            isUnsaved: true // mark as needing upload
+                        };
+                    }
+                    return img;
+                })
+            };
+        });
+        localStorage.setItem('receiptRecords', JSON.stringify(recordsToSave));
     }
 
     function renderTable() {
@@ -269,7 +344,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (record.images && record.images.length > 0) {
                 imagesHtml = '<div class="table-images">';
                 record.images.forEach(img => {
-                    imagesHtml += `<img src="${img.data}" title="${img.name}" class="table-thumb" onclick="openImage('${img.data}')">`;
+                    if (img.data) {
+                        imagesHtml += `<img src="${img.data}" title="${img.name}" class="table-thumb" onclick="openImage('${img.data}')">`;
+                    } else if (img.isUnsaved) {
+                        imagesHtml += `<div class="table-thumb placeholder" title="Image not saved to GitHub">⚠️</div>`;
+                    }
                 });
                 imagesHtml += '</div>';
             } else {
