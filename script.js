@@ -26,7 +26,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     expensesCNYInput.addEventListener('input', calculateHKD);
-    rateInput.addEventListener('input', calculateHKD);
+    
+    rateInput.addEventListener('input', () => {
+        calculateHKD();
+        
+        const newRate = parseFloat(rateInput.value);
+        // Only update records if we have a valid positive rate
+        if (!isNaN(newRate) && newRate > 0) {
+            records.forEach(record => {
+                record.rate = newRate;
+                record.expensesHKD = parseFloat((record.expensesCNY * newRate).toFixed(2));
+            });
+            saveData();
+            renderTable();
+        }
+    });
 
     // Image Preview
     let currentImages = []; // Array of {name, data (base64)}
